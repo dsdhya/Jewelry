@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: jewelry
+  # По умолчанию встроенная база H2: ничего запускать не нужно, данные лежат в файле ./data/jewelry.mv.db
+  datasource:
+    url: jdbc:h2:file:./data/jewelry
+    username: sa
+    password:
+  # Чтобы работать с PostgreSQL из docker-compose, замени три строки выше на:
+  #   url: jdbc:postgresql://localhost:5432/jewelry
+  #   username: jewelry
+  #   password: jewelry
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+server:
+  port: 8081

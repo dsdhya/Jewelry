@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ювелирный магазин</title>
+    <style>
+        :root {
+            --bg: #faf7f2;
+            --card: #ffffff;
+            --text: #2b2622;
+            --muted: #8a8178;
+            --gold: #b8924a;
+            --gold-dark: #8f6d2f;
+            --line: #ece5da;
+            --danger: #b4483c;
+            --ok: #4c7a4c;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        header {
+            background: #fff;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+        .top { display: flex; align-items: center; justify-content: space-between; min-height: 64px; gap: 8px 16px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+        .logo { font-family: Georgia, serif; font-size: 24px; letter-spacing: 1px; color: var(--gold-dark); }
+        nav { display: flex; gap: 6px; flex-wrap: wrap; }
+        nav button {
+            background: none; border: none; padding: 8px 14px; border-radius: 20px;
+            font-size: 15px; color: var(--muted); cursor: pointer;
+        }
+        nav button.active, nav button:hover { background: #f3ece0; color: var(--text); }
+        .badge { background: var(--gold); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 12px; margin-left: 4px; }
+
+        h1 { font-family: Georgia, serif; font-weight: normal; font-size: 30px; margin: 28px 0 16px; }
+        .page { display: none; padding-bottom: 40px; }
+        .page.active { display: block; }
+
+        .filters {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px; background: #fff; padding: 16px; border-radius: 14px; border: 1px solid var(--line);
+            margin-bottom: 20px;
+        }
+        input, select {
+            width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
+            font-size: 14px; background: #fff; color: var(--text);
+        }
+        label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+        .btn {
+            background: var(--gold); color: #fff; border: none; padding: 10px 18px; border-radius: 8px;
+            font-size: 14px; cursor: pointer;
+        }
+        .btn:hover { background: var(--gold-dark); }
+        .btn.light { background: #f3ece0; color: var(--text); }
+        .btn.light:hover { background: #e9dfcd; }
+        .btn:disabled { background: #d8d2c8; cursor: default; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+        .card {
+            background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+            display: flex; flex-direction: column; transition: box-shadow .2s;
+        }
+        .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+        .pic { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 56px; }
+        .GOLD { background: linear-gradient(135deg, #f6e7c1, #e2c27a); }
+        .WHITE_GOLD { background: linear-gradient(135deg, #f4f4f2, #d9d9d4); }
+        .ROSE_GOLD { background: linear-gradient(135deg, #f7ddd3, #e4b3a2); }
+        .SILVER { background: linear-gradient(135deg, #eef1f4, #c9d0d8); }
+        .PLATINUM { background: linear-gradient(135deg, #e9ecef, #b9bfc6); }
+        .info { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .name { font-weight: 600; }
+        .meta { font-size: 13px; color: var(--muted); }
+        .price { font-family: Georgia, serif; font-size: 20px; margin-top: auto; }
+        .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+        .box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { padding: 10px 6px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
+        th { color: var(--muted); font-weight: normal; }
+        .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; }
+        .status { padding: 3px 10px; border-radius: 12px; font-size: 12px; background: #f3ece0; }
+        .status.CANCELLED, .status.RETURNED { background: #f6e1de; color: var(--danger); }
+        .status.DELIVERED { background: #e2eee2; color: var(--ok); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 18px; }
+        .stat { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+        .stat b { display: block; font-family: Georgia, serif; font-size: 26px; font-weight: normal; margin-top: 6px; }
+        .bar { height: 10px; background: var(--gold); border-radius: 5px; }
+        .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--text); color: #fff; padding: 12px 20px; border-radius: 10px;
+            opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90%;
+        }
+        #toast.show { opacity: 1; }
+        #toast.error { background: var(--danger); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="wrap top">
+        <div class="logo">✦ Jewelry</div>
+        <nav>
+            <button data-page="catalog" class="active">Каталог</button>
+            <button data-page="cart">Корзина <span class="badge" id="cartCount">0</span></button>
+            <button data-page="orders">Мои заказы</button>
+            <button data-page="report">Отчёт</button>
+        </nav>
+    </div>
+</header>
+
+<main class="wrap">
+
+    <!-- Каталог -->
+    <section class="page active" id="catalog">
+        <h1>Каталог украшений</h1>
+        <div class="filters">
+            <div><label>Категория</label><select id="fCategory"><option value="">Все</option></select></div>
+            <div><label>Металл</label><select id="fMetal"><option value="">Любой</option></select></div>
+            <div><label>Проба</label><input id="fHallmark" type="number" placeholder="585"></div>
+            <div><label>Размер</label><input id="fSize" type="number" step="0.5" placeholder="17"></div>
+            <div><label>Цена от</label><input id="fMin" type="number" placeholder="0"></div>
+            <div><label>Цена до</label><input id="fMax" type="number" placeholder="100000"></div>
+            <div style="display:flex;gap:8px;align-items:end">
+                <button class="btn" onclick="loadCatalog()">Найти</button>
+                <button class="btn light" onclick="resetFilters()">Сброс</button>
+            </div>
+        </div>
+        <div class="grid" id="catalogGrid"></div>
+    </section>
+
+    <!-- Корзина и оформление -->
+    <section class="page" id="cart">
+        <h1>Корзина</h1>
+        <div class="box" id="cartBox"></div>
+
+        <div class="box" id="registerBox">
+            <h3 style="margin-top:0">Покупатель</h3>
+            <p class="meta" id="userInfo"></p>
+            <div class="form">
+                <div><label>ФИО</label><input id="uName" placeholder="Иванова Анна"></div>
+                <div><label>Email</label><input id="uEmail" placeholder="anna@mail.ru"></div>
+                <div><label>Телефон</label><input id="uPhone" placeholder="+7 900 000-00-00"></div>
+            </div>
+            <div class="row" style="justify-content:flex-start">
+                <button class="btn light" onclick="register()">Зарегистрироваться</button>
+                <span class="meta">или войти по номеру</span>
+                <input id="uId" type="number" placeholder="ID" style="width:90px">
+                <button class="btn light" onclick="loginById()">Войти</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <h3 style="margin-top:0">Доставка</h3>
+            <div class="form"><div><label>Адрес</label><input id="address" placeholder="г. Казань, ул. Баумана, 1"></div></div>
+            <button class="btn" onclick="checkout()">Оформить заказ</button>
+        </div>
+    </section>
+
+    <!-- Заказы -->
+    <section class="page" id="orders">
+        <h1>Мои заказы</h1>
+        <div id="ordersBox"></div>
+    </section>
+
+    <!-- Отчёт -->
+    <section class="page" id="report">
+        <h1>Отчёт по продажам</h1>
+        <div class="filters" style="grid-template-columns:repeat(auto-fit,minmax(160px,220px))">
+            <div><label>С</label><input id="rFrom" type="date"></div>
+            <div><label>По</label><input id="rTo" type="date"></div>
+            <div style="display:flex;align-items:end"><button class="btn" onclick="loadReport()">Показать</button></div>
+        </div>
+        <div id="reportBox"></div>
+    </section>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+    const METALS = {
+        GOLD: 'Золото', WHITE_GOLD: 'Белое золото', ROSE_GOLD: 'Розовое золото',
+        SILVER: 'Серебро', PLATINUM: 'Платина'
+    };
+    const STATUSES = {
+        NEW: 'Новый', CONFIRMED: 'Подтверждён', PAID: 'Оплачен', SHIPPED: 'Отправлен',
+        DELIVERED: 'Доставлен', CANCELLED: 'Отменён', RETURNED: 'Возвращён'
+    };
+    // подписи кнопок для смены статуса
+    const ACTIONS = {
+        CONFIRMED: 'Подтвердить', PAID: 'Оплатить', SHIPPED: 'Отправить',
+        DELIVERED: 'Доставлен', CANCELLED: 'Отменить', RETURNED: 'Вернуть'
+    };
+    // те же переходы, что в OrderStatus.nextAllowed()
+    const NEXT = {
+        NEW: ['CONFIRMED', 'CANCELLED'], CONFIRMED: ['PAID', 'CANCELLED'], PAID: ['SHIPPED', 'CANCELLED'],
+        SHIPPED: ['DELIVERED'], DELIVERED: ['RETURNED'], CANCELLED: [], RETURNED: []
+    };
+
+    let cart = [];   // [{jewelry, quantity}]
+    let user = JSON.parse(localStorage.getItem('user') || 'null');
+
+    // ---------- общее ----------
+    async function api(url, method = 'GET', body) {
+        const res = await fetch(url, {
+            method,
+            headers: body ? { 'Content-Type': 'application/json' } : {},
+            body: body ? JSON.stringify(body) : undefined
+        });
+        const data = res.status === 204 ? null : await res.json().catch(() => null);
+        if (!res.ok) {
+            throw new Error(data && data.messages ? data.messages.join(', ') : 'Ошибка ' + res.status);
+        }
+        return data;
+    }
+
+    function toast(text, error = false) {
+        const t = document.getElementById('toast');
+        t.textContent = text;
+        t.className = 'show' + (error ? ' error' : '');
+        clearTimeout(t.timer);
+        t.timer = setTimeout(() => t.className = '', 3000);
+    }
+
+    const money = v => Number(v).toLocaleString('ru-RU') + ' ₽';
+    const icon = j => {
+        const c = (j.category && j.category.name || '').toLowerCase();
+        if (c.includes('серьг')) return '✧';
+        if (c.includes('цеп')) return '⛓';
+        return '💍';
+    };
+
+    document.querySelectorAll('nav button').forEach(b => b.onclick = () => showPage(b.dataset.page));
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id));
+        document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.page === id));
+        if (id === 'cart') renderCart();
+        if (id === 'orders') loadOrders();
+        if (id === 'report') loadReport();
+    }
+
+    // ---------- каталог ----------
+    async function initFilters() {
+        const cats = await api('/api/categories');
+        document.getElementById('fCategory').innerHTML += cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        document.getElementById('fMetal').innerHTML += Object.entries(METALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+    }
+
+    async function loadCatalog() {
+        const params = new URLSearchParams();
+        const add = (key, id) => { const v = document.getElementById(id).value; if (v) params.append(key, v); };
+        add('categoryId', 'fCategory'); add('metal', 'fMetal'); add('hallmark', 'fHallmark');
+        add('size', 'fSize'); add('minPrice', 'fMin'); add('maxPrice', 'fMax');
+        try {
+            const list = await api('/api/jewelry?' + params);
+            const grid = document.getElementById('catalogGrid');
+            if (!list.length) { grid.innerHTML = '<div class="empty">Ничего не найдено</div>'; return; }
+            grid.innerHTML = list.map(j => `
+                <div class="card">
+                    <div class="pic ${j.metal}">${icon(j)}</div>
+                    <div class="info">
+                        <div class="name">${j.name}</div>
+                        <div class="meta">${METALS[j.metal]}, проба ${j.hallmark} · ${j.weightGrams} г</div>
+                        <div class="meta">${j.size ? 'Размер ' + j.size + ' · ' : ''}${j.stone ? 'Вставка: ' + j.stone : 'Без вставки'}</div>
+                        <div class="meta">Арт. ${j.article} · в наличии ${j.stockQuantity} шт.</div>
+                        <div class="row">
+                            <div class="price">${money(j.price)}</div>
+                            <button class="btn" ${j.stockQuantity > 0 ? '' : 'disabled'}
+                                onclick='addToCart(${JSON.stringify(j).replace(/'/g, "&#39;")})'>
+                                ${j.stockQuantity > 0 ? 'В корзину' : 'Нет'}
+                            </button>
+                        </div>
+                    </div>
+                </div>`).join('');
+        } catch (e) { toast(e.message, true); }
+    }
+
+    function resetFilters() {
+        document.querySelectorAll('.filters input, .filters select').forEach(el => el.value = '');
+        loadCatalog();
+    }
+
+    // ---------- корзина ----------
+    function addToCart(j) {
+        const item = cart.find(i => i.jewelry.id === j.id);
+        if (item) {
+            if (item.quantity >= j.stockQuantity) { toast('Больше нет на складе', true); return; }
+            item.quantity++;
+        } else {
+            cart.push({ jewelry: j, quantity: 1 });
+        }
+        updateCartCount();
+        toast('Добавлено: ' + j.name);
+    }
+
+    function changeQty(id, delta) {
+        const item = cart.find(i => i.jewelry.id === id);
+        item.quantity += delta;
+        if (item.quantity > item.jewelry.stockQuantity) item.quantity = item.jewelry.stockQuantity;
+        if (item.quantity <= 0) cart = cart.filter(i => i !== item);
+        updateCartCount();
+        renderCart();
+    }
+
+    function updateCartCount() {
+        document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + i.quantity, 0);
+    }
+
+    function renderCart() {
+        const box = document.getElementById('cartBox');
+        if (!cart.length) {
+            box.innerHTML = '<div class="empty">Корзина пуста — загляните в каталог</div>';
+        } else {
+            const total = cart.reduce((s, i) => s + i.jewelry.price * i.quantity, 0);
+            box.innerHTML = `<table>
+                <tr><th>Изделие</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>
+                ${cart.map(i => `<tr>
+                    <td>${i.jewelry.name}</td>
+                    <td>${money(i.jewelry.price)}</td>
+                    <td><button class="btn light" onclick="changeQty(${i.jewelry.id},-1)">−</button>
+                        ${i.quantity}
+                        <button class="btn light" onclick="changeQty(${i.jewelry.id},1)">+</button></td>
+                    <td>${money(i.jewelry.price * i.quantity)}</td></tr>`).join('')}
+                <tr><td colspan="3"><b>Итого</b></td><td><b>${money(total)}</b></td></tr>
+            </table>`;
+        }
+        document.getElementById('userInfo').textContent = user
+            ? `Вы вошли как ${user.fullName} (ID ${user.id})`
+            : 'Зарегистрируйтесь, чтобы оформить заказ';
+    }
+
+    function setUser(u) {
+        user = u;
+        localStorage.setItem('user', JSON.stringify(u));
+        renderCart();
+    }
+
+    async function register() {
+        try {
+            const u = await api('/api/users', 'POST', {
+                fullName: document.getElementById('uName').value,
+                email: document.getElementById('uEmail').value,
+                phone: document.getElementById('uPhone').value
+            });
+            setUser(u);
+            toast('Вы зарегистрированы, ваш ID: ' + u.id);
+        } catch (e) { toast(e.message, true); }
+    }
+
+    function loginById() {
+        const id = Number(document.getElementById('uId').value);
+        if (!id) { toast('Введите ID', true); return; }
+        setUser({ id, fullName: 'покупатель №' + id });
+        toast('Готово');
+    }
+
+    async function checkout() {
+        if (!user) { toast('Сначала зарегистрируйтесь', true); return; }
+        if (!cart.length) { toast('Корзина пуста', true); return; }
+        try {
+            const order = await api('/api/orders', 'POST', {
+                userId: user.id,
+                deliveryAddress: document.getElementById('address').value,
+                items: cart.map(i => ({ jewelryId: i.jewelry.id, quantity: i.quantity }))
+            });
+            cart = [];
+            updateCartCount();
+            toast('Заказ №' + order.id + ' оформлен на ' + money(order.totalAmount));
+            loadCatalog();
+            showPage('orders');
+        } catch (e) { toast(e.message, true); }
+    }
+
+    // ---------- заказы ----------
+    async function loadOrders() {
+        const box = document.getElementById('ordersBox');
+        if (!user) { box.innerHTML = '<div class="box empty">Войдите на странице корзины, чтобы увидеть заказы</div>'; return; }
+        try {
+            const orders = await api(`/api/users/${user.id}/orders`);
+            if (!orders.length) { box.innerHTML = '<div class="box empty">Заказов пока нет</div>'; return; }
+            box.innerHTML = orders.map(o => `
+                <div class="box">
+                    <div class="row">
+                        <b>Заказ №${o.id}</b>
+                        <span class="status ${o.status}">${STATUSES[o.status]}</span>
+                    </div>
+                    <p class="meta">${new Date(o.createdAt).toLocaleString('ru-RU')} · ${o.deliveryAddress}</p>
+                    <table>${o.items.map(i => `<tr><td>${i.jewelryName}</td><td>${i.quantity} шт.</td><td>${money(i.subtotal)}</td></tr>`).join('')}
+                        <tr><td colspan="2"><b>Итого</b></td><td><b>${money(o.totalAmount)}</b></td></tr></table>
+                    <div class="row" style="justify-content:flex-start;margin-top:12px">
+                        ${NEXT[o.status].map(s => `<button class="btn ${s === 'CANCELLED' || s === 'RETURNED' ? 'light' : ''}"
+                            onclick="changeStatus(${o.id},'${s}')">${ACTIONS[s]}</button>`).join('')}
+                    </div>
+                </div>`).join('');
+        } catch (e) { box.innerHTML = ''; toast(e.message, true); }
+    }
+
+    async function changeStatus(id, status) {
+        try {
+            await api(`/api/orders/${id}/status`, 'PUT', { status });
+            toast('Статус: ' + STATUSES[status]);
+            loadOrders();
+            loadCatalog();
+        } catch (e) { toast(e.message, true); }
+    }
+
+    // ---------- отчёт ----------
+    async function loadReport() {
+        const params = new URLSearchParams();
+        const from = document.getElementById('rFrom').value, to = document.getElementById('rTo').value;
+        if (from) params.append('from', from);
+        if (to) params.append('to', to);
+        try {
+            const r = await api('/api/reports/sales?' + params);
+            const max = Math.max(1, ...Object.values(r.revenueByMetal).map(Number));
+            document.getElementById('reportBox').innerHTML = `
+                <div class="stats">
+                    <div class="stat">Заказов<b>${r.ordersCount}</b></div>
+                    <div class="stat">Выручка<b>${money(r.revenue)}</b></div>
+                    <div class="stat">Средний чек<b>${money(r.averageCheck)}</b></div>
+                </div>
+                <div class="box">
+                    <h3 style="margin-top:0">По металлам</h3>
+                    ${Object.keys(r.revenueByMetal).length ? `<table>
+                        <tr><th>Металл</th><th>Выручка</th><th>Продано, г</th><th style="width:40%"></th></tr>
+                        ${Object.entries(r.revenueByMetal).map(([m, v]) => `<tr>
+                            <td>${METALS[m]}</td><td>${money(v)}</td><td>${r.weightSoldByMetal[m] || 0}</td>
+                            <td><div class="bar" style="width:${v / max * 100}%"></div></td></tr>`).join('')}
+                    </table>` : '<div class="empty">Продаж пока нет. В отчёт попадают оплаченные, отправленные и доставленные заказы.</div>'}
+                </div>`;
+        } catch (e) { toast(e.message, true); }
+    }
+
+    initFilters().then(loadCatalog);
+</script>
+</body>
+</html>
