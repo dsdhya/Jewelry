@@ -61,6 +61,8 @@ public class Jewelry {
     @Column(nullable = false)
     private int stockQuantity;       // остаток на складе
 
+    private String photoUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

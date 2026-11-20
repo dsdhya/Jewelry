@@ -263,8 +263,10 @@
         const add = (key, id) => { const v = document.getElementById(id).value; if (v) params.append(key, v); };
         add('categoryId', 'fCategory'); add('metal', 'fMetal'); add('hallmark', 'fHallmark');
         add('size', 'fSize'); add('minPrice', 'fMin'); add('maxPrice', 'fMax');
+        params.append('pageSize', 100);   // сервер отдаёт страницами, по умолчанию по 10 штук
         try {
-            const list = await api('/api/jewelry?' + params);
+            const page = await api('/api/jewelry?' + params);
+            const list = page.content;
             const grid = document.getElementById('catalogGrid');
             if (!list.length) { grid.innerHTML = '<div class="empty">Ничего не найдено</div>'; return; }
             grid.innerHTML = list.map(j => `

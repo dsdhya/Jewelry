@@ -46,6 +46,9 @@ public class DataInitializer implements CommandLineRunner {
                 MetalType.GOLD, 585, new BigDecimal("4.20"), new BigDecimal("50"), null,
                 new BigDecimal("32900"), 5));
 
-        userService.register(new UserRequest("Иванова Анна", "anna@example.com", "+79990000001"));
+        try {
+            userService.register(new UserRequest("Иванова Анна", "anna@example.com", "+79990000001"));
+        } catch (Exception ignored) {
+        }
     }
 }

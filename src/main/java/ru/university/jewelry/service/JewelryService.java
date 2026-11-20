@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 import ru.university.jewelry.dto.JewelryFilter;
@@ -17,6 +18,7 @@ import ru.university.jewelry.model.Jewelry;
 import ru.university.jewelry.model.JewelryStatus;
 import ru.university.jewelry.repository.JewelryRepository;
 import ru.university.jewelry.repository.spec.JewelrySpecifications;
+import ru.university.jewelry.storage.StorageService;
 
 @Service
 @RequiredArgsConstructor
@@ -24,19 +26,21 @@ public class JewelryService {
 
     private final JewelryRepository repository;
     private final CategoryService categoryService;
+    private final StorageService storageService;
 
     @Cacheable("jewelry")
-    public Page<JewelryResponse> findAll(JewelryFilter filter, Pageable pageable)
-    {
-      return repository.findAll(JewelrySpecifications.withFilter(filter.categoryId(),
-       filter.metal(), filter.hallmark(), filter.size(),filter.minPrice(),filter.maxPrice()), pageable)
-        .map(this::toResponse);
+    public Page<JewelryResponse> findAll(JewelryFilter filter, Pageable pageable) {
+        return repository.findAll(JewelrySpecifications.withFilter(filter.categoryId(),
+                filter.metal(), filter.hallmark(), filter.size(), filter.minPrice(), filter.maxPrice()), pageable)
+                .map(this::toResponse);
     }
+
     @Cacheable("jewelry")
     public JewelryResponse findById(Long id) {
         return toResponse(getEntity(id));
     }
-    @CacheEvict (value = "jewelry", allEntries = true)
+
+    @CacheEvict(value = "jewelry", allEntries = true)
     public JewelryResponse create(JewelryRequest request) {
         if (repository.existsByArticle(request.article())) {
             throw new BusinessException("Изделие с артикулом " + request.article() + " уже есть");
@@ -45,7 +49,8 @@ public class JewelryService {
         fillFromRequest(jewelry, request);
         return toResponse(repository.save(jewelry));
     }
-    @CacheEvict (value = "jewelry", allEntries = true)
+
+    @CacheEvict(value = "jewelry", allEntries = true)
     public JewelryResponse update(JewelryRequest request, Long id) {
         Jewelry jewelry = getEntity(id);
         if (!jewelry.getArticle().equals(request.article()) && repository.existsByArticle(request.article())) {
@@ -54,12 +59,21 @@ public class JewelryService {
         fillFromRequest(jewelry, request);
         return toResponse(repository.save(jewelry));
     }
-    @CacheEvict (value = "jewelry", allEntries = true)
-    // товар не удаляем физически: на него ссылаются заказы
+
+    @CacheEvict(value = "jewelry", allEntries = true)
     public void delete(Long id) {
         Jewelry jewelry = getEntity(id);
         jewelry.setStatus(JewelryStatus.DISCONTINUED);
         repository.save(jewelry);
+    }
+
+    @Transactional
+    @CacheEvict(value = "jewelry", allEntries = true)
+    public String uploadPhoto(Long id, MultipartFile file) {
+        Jewelry jewelry = getEntity(id);
+        String url = storageService.store("jewelry-photos", file);
+        jewelry.setPhotoUrl(url);
+        return url;
     }
 
     public Jewelry getEntity(Long id) {
@@ -67,7 +81,7 @@ public class JewelryService {
                 .orElseThrow(() -> new NotFoundException("Изделие с id=" + id + " не найдено"));
     }
 
-    @CacheEvict (value = "jewelry", allEntries = true)
+    @CacheEvict(value = "jewelry", allEntries = true)
     @Transactional
     public void changeStock(Jewelry jewelry, int delta) {
         jewelry.setStockQuantity(jewelry.getStockQuantity() + delta);

@@ -12,10 +12,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import ru.university.jewelry.dto.CsvImportResult;
 import ru.university.jewelry.dto.JewelryFilter;
 import ru.university.jewelry.dto.JewelryRequest;
 import ru.university.jewelry.dto.JewelryResponse;
@@ -26,8 +29,8 @@ public interface JewelryApi {
 
     @Operation(summary = "Каталог с фильтрами по категории, металлу, пробе, размеру и цене")
     @GetMapping
-    Page<JewelryResponse> getAll(@ParameterObject JewelryFilter filter, 
-    @ParameterObject @PageableDefault(page = 0, size = 10, sort = "id") Pageable pageable);
+    Page<JewelryResponse> getAll(@ParameterObject JewelryFilter filter,
+            @ParameterObject @PageableDefault(page = 0, size = 10, sort = "id") Pageable pageable);
 
     @Operation(summary = "Карточка изделия")
     @GetMapping("/{id}")
@@ -40,6 +43,14 @@ public interface JewelryApi {
     @Operation(summary = "Изменить изделие")
     @PutMapping("/{id}")
     JewelryResponse update(@RequestBody @Valid JewelryRequest request, @PathVariable Long id);
+
+    @Operation(summary = "Загрузить фото изделия")
+    @PostMapping(value = "/{id}/photo", consumes = "multipart/form-data")
+    String uploadPhoto(@PathVariable Long id, @RequestPart("file") MultipartFile file);
+
+    @Operation(summary = "Импорт каталога изделий из CSV")
+    @PostMapping(value = "/import", consumes = "multipart/form-data")
+    CsvImportResult importCsv(@RequestPart("file") MultipartFile file);
 
     @Operation(summary = "Снять изделие с продажи")
     @DeleteMapping("/{id}")
