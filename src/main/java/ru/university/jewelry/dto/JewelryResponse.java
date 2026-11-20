@@ -17,5 +17,6 @@ public record JewelryResponse(
         String stone,
         BigDecimal price,
         int stockQuantity,
-        JewelryStatus status) {
+        JewelryStatus status,
+        String photoUrl) {
 }

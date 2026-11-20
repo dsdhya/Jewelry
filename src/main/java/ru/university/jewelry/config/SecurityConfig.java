@@ -30,7 +30,7 @@ public class SecurityConfig {
     private static final String SWAGGER_UI_URL = "/swagger-ui/**";
     private static final String API_DOCS_URL = "/v3/api-docs/**";
     private static final String[] ALLOWED_URLS = {
-            SWAGGER_UI_URL, API_DOCS_URL, "/swagger-ui.html", "/", "/index.html", "/error"
+            SWAGGER_UI_URL, API_DOCS_URL, "/swagger-ui.html", "/", "/index.html", "/error", "/jewelry-photos/**"
     };
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;

@@ -127,6 +127,7 @@ public class JewelryService {
                 jewelry.getStone(),
                 jewelry.getPrice(),
                 jewelry.getStockQuantity(),
-                jewelry.getStatus());
+                jewelry.getStatus(),
+                jewelry.getPhotoUrl());
     }
 }

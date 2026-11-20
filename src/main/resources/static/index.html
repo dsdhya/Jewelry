@@ -40,6 +40,10 @@
         }
         nav button.active, nav button:hover { background: #f3ece0; color: var(--text); }
         .badge { background: var(--gold); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 12px; margin-left: 4px; }
+        .auth-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .auth-bar input { width: 120px; padding: 6px 10px; font-size: 13px; }
+        .auth-bar .btn { padding: 7px 14px; font-size: 13px; }
+        .auth-user { font-size: 13px; color: var(--text); background: #f3ece0; padding: 5px 10px; border-radius: 14px; }
 
         h1 { font-family: Georgia, serif; font-weight: normal; font-size: 30px; margin: 28px 0 16px; }
         .page { display: none; padding-bottom: 40px; }
@@ -63,6 +67,7 @@
         .btn.light { background: #f3ece0; color: var(--text); }
         .btn.light:hover { background: #e9dfcd; }
         .btn:disabled { background: #d8d2c8; cursor: default; }
+        .btn.small { padding: 6px 10px; font-size: 12px; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
         .card {
@@ -70,7 +75,13 @@
             display: flex; flex-direction: column; transition: box-shadow .2s;
         }
         .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.06); }
-        .pic { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 56px; }
+        .pic { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 56px; position: relative; overflow: hidden; }
+        .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pic-upload {
+            position: absolute; right: 8px; bottom: 8px; background: rgba(255,255,255,.9);
+            border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+        }
+        .pic-upload:hover { background: #fff; }
         .GOLD { background: linear-gradient(135deg, #f6e7c1, #e2c27a); }
         .WHITE_GOLD { background: linear-gradient(135deg, #f4f4f2, #d9d9d4); }
         .ROSE_GOLD { background: linear-gradient(135deg, #f7ddd3, #e4b3a2); }
@@ -95,11 +106,13 @@
         .stat b { display: block; font-family: Georgia, serif; font-size: 26px; font-weight: normal; margin-top: 6px; }
         .bar { height: 10px; background: var(--gold); border-radius: 5px; }
         .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+        .sse-list { max-height: 180px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+        .sse-item { padding: 6px 10px; background: #faf7f2; border-radius: 8px; border: 1px solid var(--line); }
 
         #toast {
             position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
             background: var(--text); color: #fff; padding: 12px 20px; border-radius: 10px;
-            opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90%;
+            opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90%; z-index: 20;
         }
         #toast.show { opacity: 1; }
         #toast.error { background: var(--danger); }
@@ -116,6 +129,7 @@
             <button data-page="orders">Мои заказы</button>
             <button data-page="report">Отчёт</button>
         </nav>
+        <div class="auth-bar" id="authBar"></div>
     </div>
 </header>
 
@@ -136,6 +150,16 @@
                 <button class="btn light" onclick="resetFilters()">Сброс</button>
             </div>
         </div>
+
+        <div class="box" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span class="meta" style="color:var(--text);font-weight:600">Импорт каталога (CSV):</span>
+                <input id="csvFile" type="file" accept=".csv" style="width:auto;padding:5px">
+                <button class="btn small" onclick="importCsv()">Загрузить CSV</button>
+            </div>
+            <span class="meta" id="csvResult"></span>
+        </div>
+
         <div class="grid" id="catalogGrid"></div>
     </section>
 
@@ -182,6 +206,15 @@
             <div style="display:flex;align-items:end"><button class="btn" onclick="loadReport()">Показать</button></div>
         </div>
         <div id="reportBox"></div>
+        <div class="box">
+            <div class="row" style="margin-bottom:10px">
+                <h3 style="margin:0">Фоновые уведомления отчётов (SSE)</h3>
+                <span class="meta" id="sseStatus">Не подключено</span>
+            </div>
+            <div class="sse-list" id="sseList">
+                <div class="meta">Войдите в систему, чтобы получать события report-ready каждые 10 сек.</div>
+            </div>
+        </div>
     </section>
 
 </main>
@@ -197,30 +230,31 @@
         NEW: 'Новый', CONFIRMED: 'Подтверждён', PAID: 'Оплачен', SHIPPED: 'Отправлен',
         DELIVERED: 'Доставлен', CANCELLED: 'Отменён', RETURNED: 'Возвращён'
     };
-    // подписи кнопок для смены статуса
     const ACTIONS = {
         CONFIRMED: 'Подтвердить', PAID: 'Оплатить', SHIPPED: 'Отправить',
         DELIVERED: 'Доставлен', CANCELLED: 'Отменить', RETURNED: 'Вернуть'
     };
-    // те же переходы, что в OrderStatus.nextAllowed()
     const NEXT = {
         NEW: ['CONFIRMED', 'CANCELLED'], CONFIRMED: ['PAID', 'CANCELLED'], PAID: ['SHIPPED', 'CANCELLED'],
         SHIPPED: ['DELIVERED'], DELIVERED: ['RETURNED'], CANCELLED: [], RETURNED: []
     };
 
-    let cart = [];   // [{jewelry, quantity}]
+    let cart = [];
     let user = JSON.parse(localStorage.getItem('user') || 'null');
+    let authUser = null;
+    let sseSource = null;
 
-    // ---------- общее ----------
     async function api(url, method = 'GET', body) {
         const res = await fetch(url, {
             method,
+            credentials: 'same-origin',
             headers: body ? { 'Content-Type': 'application/json' } : {},
             body: body ? JSON.stringify(body) : undefined
         });
         const data = res.status === 204 ? null : await res.json().catch(() => null);
         if (!res.ok) {
-            throw new Error(data && data.messages ? data.messages.join(', ') : 'Ошибка ' + res.status);
+            const msg = data && (data.messages ? data.messages.join(', ') : data.message);
+            throw new Error(msg || 'Ошибка ' + res.status);
         }
         return data;
     }
@@ -241,6 +275,80 @@
         return '💍';
     };
 
+    // ---------- авторизация (Spring Security + JWT cookies) ----------
+    function renderAuthBar() {
+        const bar = document.getElementById('authBar');
+        if (authUser) {
+            bar.innerHTML = `
+                <span class="auth-user">${authUser.username} [${(authUser.role || []).join(', ')}]</span>
+                <button class="btn light" onclick="authLogout()">Выйти</button>`;
+        } else {
+            bar.innerHTML = `
+                <input id="loginUser" placeholder="Логин (admin)" value="admin">
+                <input id="loginPass" type="password" placeholder="Пароль" value="admin">
+                <button class="btn" onclick="authLogin()">Войти</button>`;
+        }
+    }
+
+    async function checkAuth() {
+        try {
+            authUser = await api('/api/auth/info');
+        } catch {
+            authUser = null;
+        }
+        renderAuthBar();
+        if (authUser) {
+            await initFilters();
+            await loadCatalog();
+            connectSse();
+        } else {
+            document.getElementById('catalogGrid').innerHTML =
+                '<div class="box empty" style="grid-column:1/-1">Войдите вверху (например, <b>admin / admin</b>), чтобы открыть каталог</div>';
+        }
+    }
+
+    async function authLogin() {
+        try {
+            const username = document.getElementById('loginUser').value.trim();
+            const password = document.getElementById('loginPass').value;
+            await api('/api/auth/login', 'POST', { username, password });
+            toast('Вход выполнен');
+            await checkAuth();
+        } catch (e) {
+            toast('Неверный логин или пароль', true);
+        }
+    }
+
+    async function authLogout() {
+        try {
+            await api('/api/auth/logout', 'POST');
+        } catch {}
+        authUser = null;
+        if (sseSource) { sseSource.close(); sseSource = null; }
+        document.getElementById('sseStatus').textContent = 'Отключено';
+        renderAuthBar();
+        document.getElementById('catalogGrid').innerHTML =
+            '<div class="box empty" style="grid-column:1/-1">Вы вышли из системы. Войдите снова вверху.</div>';
+        toast('Вы вышли');
+    }
+
+    function connectSse() {
+        if (sseSource) sseSource.close();
+        const statusEl = document.getElementById('sseStatus');
+        const listEl = document.getElementById('sseList');
+        sseSource = new EventSource('/api/reports/stream');
+        sseSource.onopen = () => { statusEl.textContent = 'Подключено'; };
+        sseSource.addEventListener('report-ready', e => {
+            const data = JSON.parse(e.data);
+            if (listEl.querySelector('.meta')) listEl.innerHTML = '';
+            const item = document.createElement('div');
+            item.className = 'sse-item';
+            item.textContent = `${new Date().toLocaleTimeString('ru-RU')} — Отчёт ${data.reportId} (${data.status})`;
+            listEl.prepend(item);
+        });
+        sseSource.onerror = () => { statusEl.textContent = 'Переподключение...'; };
+    }
+
     document.querySelectorAll('nav button').forEach(b => b.onclick = () => showPage(b.dataset.page));
 
     function showPage(id) {
@@ -251,11 +359,17 @@
         if (id === 'report') loadReport();
     }
 
-    // ---------- каталог ----------
+    // ---------- каталог, фото и CSV ----------
     async function initFilters() {
-        const cats = await api('/api/categories');
-        document.getElementById('fCategory').innerHTML += cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        document.getElementById('fMetal').innerHTML += Object.entries(METALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+        const fCat = document.getElementById('fCategory');
+        const fMet = document.getElementById('fMetal');
+        if (fCat.options.length <= 1) {
+            const cats = await api('/api/categories');
+            fCat.innerHTML += cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+        if (fMet.options.length <= 1) {
+            fMet.innerHTML += Object.entries(METALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+        }
     }
 
     async function loadCatalog() {
@@ -263,7 +377,7 @@
         const add = (key, id) => { const v = document.getElementById(id).value; if (v) params.append(key, v); };
         add('categoryId', 'fCategory'); add('metal', 'fMetal'); add('hallmark', 'fHallmark');
         add('size', 'fSize'); add('minPrice', 'fMin'); add('maxPrice', 'fMax');
-        params.append('pageSize', 100);   // сервер отдаёт страницами, по умолчанию по 10 штук
+        params.append('pageSize', 100);
         try {
             const page = await api('/api/jewelry?' + params);
             const list = page.content;
@@ -271,7 +385,14 @@
             if (!list.length) { grid.innerHTML = '<div class="empty">Ничего не найдено</div>'; return; }
             grid.innerHTML = list.map(j => `
                 <div class="card">
-                    <div class="pic ${j.metal}">${icon(j)}</div>
+                    <div class="pic ${j.metal}">
+                        ${j.photoUrl ? `<img src="${j.photoUrl}" alt="${j.name}">` : icon(j)}
+                        <label class="pic-upload" title="Загрузить JPG/PNG">
+                            📷 Фото
+                            <input type="file" accept=".jpg,.jpeg,.png" style="display:none"
+                                onchange="uploadPhoto(${j.id}, this)">
+                        </label>
+                    </div>
                     <div class="info">
                         <div class="name">${j.name}</div>
                         <div class="meta">${METALS[j.metal]}, проба ${j.hallmark} · ${j.weightGrams} г</div>
@@ -287,6 +408,54 @@
                     </div>
                 </div>`).join('');
         } catch (e) { toast(e.message, true); }
+    }
+
+    async function uploadPhoto(id, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch(`/api/jewelry/${id}/photo`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err && err.messages ? err.messages.join(', ') : 'Ошибка ' + res.status);
+            }
+            toast('Фото загружено');
+            loadCatalog();
+        } catch (e) {
+            toast(e.message, true);
+        } finally {
+            input.value = '';
+        }
+    }
+
+    async function importCsv() {
+        const input = document.getElementById('csvFile');
+        const file = input.files[0];
+        if (!file) { toast('Выберите CSV-файл', true); return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/jewelry/import', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data && data.messages ? data.messages.join(', ') : 'Ошибка ' + res.status);
+            document.getElementById('csvResult').textContent =
+                `Всего: ${data.totalRows}, загружено: ${data.imported}, ошибок: ${data.failed}`;
+            toast(`Импорт: ${data.imported} из ${data.totalRows}`);
+            input.value = '';
+            loadCatalog();
+        } catch (e) {
+            toast(e.message, true);
+        }
     }
 
     function resetFilters() {
@@ -445,7 +614,7 @@
         } catch (e) { toast(e.message, true); }
     }
 
-    initFilters().then(loadCatalog);
+    checkAuth();
 </script>
 </body>
 </html>
