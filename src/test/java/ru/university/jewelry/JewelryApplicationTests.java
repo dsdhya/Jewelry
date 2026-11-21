@@ -22,7 +22,10 @@ import org.springframework.web.context.WebApplicationContext;
 
 import jakarta.servlet.http.Cookie;
 
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1")
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+        "app.storage.root-dir=${java.io.tmpdir}/jewelry-test-storage"
+})
 class JewelryApplicationTests {
 
     @Autowired

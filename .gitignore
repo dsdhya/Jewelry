@@ -35,4 +35,3 @@ build/
 ### База H2 (создаётся при запуске) ###
 data/
 *.trace.db
-storage/
